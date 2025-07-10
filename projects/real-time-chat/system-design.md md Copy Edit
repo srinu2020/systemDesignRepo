@@ -1,28 +1,143 @@
-# Real-Time Chat System - System Design
+# 📡 Distributed Real-Time Chat System - System Design
 
-## 📌 Functional Requirements
+This document explains the design, architecture, and components of a real-time distributed chat system built using Node.js, WebSockets, Redis, and MongoDB.
 
-- 1-to-1 Messaging
-- Real-time updates (no refresh)
+---
+
+## ✅ Functional Requirements
+
+- 1-to-1 real-time chat
 - Typing indicators
-- Online/offline status
+- Delivery and read receipts
+- User online/offline status
+- JWT-based authentication
 
-## 🧱 Components
+---
 
-- Client (React)
-- Backend (Node.js + WebSocket)
-- Redis Pub/Sub
-- Optional: Load Balancer + Sticky Sessions
+## 🚫 Non-Functional Requirements
 
-## 🧰 Tech Stack
+- Low latency (sub-200ms)
+- High availability
+- Scalable (support 100K+ concurrent users)
+- Secure
+- Message persistence
 
-- Frontend: React + Socket.io-client
-- Backend: Node.js + Express + WebSocket (or Socket.io)
-- Redis: For pub/sub between instances
-- Nginx: For load balancing
+---
 
-## 📈 Scaling Strategy
+## 🧱 High-Level Architecture
 
-- Stateless WebSocket servers
-- Redis pub/sub for sync
-- Nginx for traffic routing
+
+
+---
+
+## 🔧 Components
+
+### 1. Client (React)
+- WebSocket connection via Socket.IO
+- Authenticated using JWT
+- UI: chat screen, typing indicator, online status, etc.
+
+### 2. Load Balancer (NGINX)
+- Distributes WebSocket connections across server instances
+- Uses sticky sessions for connection consistency
+
+### 3. Chat Server (Node.js + Socket.IO)
+- Handles WebSocket connections
+- Emits/receives chat events
+- Publishes/subscribes via Redis
+- Persists messages in MongoDB
+
+### 4. Redis (Pub/Sub)
+- Inter-server communication for message routing
+- Ensures scalability and delivery between nodes
+
+### 5. MongoDB
+- Stores all messages with metadata
+- Enables chat history and offline message storage
+
+---
+
+## 📚 Data Models
+
+### Message Schema (MongoDB)
+
+```json
+{
+  "messageId": "uuid",
+  "senderId": "user123",
+  "receiverId": "user456",
+  "text": "Hello!",
+  "timestamp": "2025-07-06T12:30:00Z",
+  "delivered": true,
+  "read": false
+}
+
+
+🔄 Message Flow (1-to-1)
+User A connects to Server 1 via WebSocket
+
+Sends message to User B
+
+Server 1:
+
+Saves message to MongoDB
+
+Publishes to Redis channel user_b
+
+Redis delivers to Server 2 (where User B is connected)
+
+Server 2 emits to User B via WebSocket
+
+🔐 Security
+JWT-based user authentication
+
+Message validation and input sanitization
+
+HTTPS / WSS enabled
+
+Rate limiting per connection
+
+🧠 Scalability Considerations
+Area	Approach
+WebSocket Scaling	Load Balancer + Sticky Sessions
+Message Routing	Redis Pub/Sub
+Persistence	MongoDB with indexes
+Horizontal Scaling	Stateless servers, Redis bridge
+Offline Users	Store and emit on reconnect
+
+📦 Tech Stack
+Layer	Tech
+Frontend	React + Socket.IO-client
+Backend	Node.js + Express + Socket.IO
+Pub/Sub	Redis
+Database	MongoDB
+Load Balancer	NGINX
+Deployment	Docker + Docker Compose
+Auth	JWT
+
+🧪 Future Improvements
+Group chat and chat rooms
+
+Chat history loading with pagination
+
+Push notifications
+
+Kafka instead of Redis for better reliability
+
+Monitoring with Prometheus/Grafana
+
+
+
+real-time-chat/
+├── client/ (React app)
+├── server/
+│   ├── index.js
+│   ├── socketHandler.js
+│   ├── redisClient.js
+│   ├── models/
+│   │   └── Message.js
+│   └── auth/
+│       └── jwtMiddleware.js
+├── docker-compose.yml
+├── README.md
+└── system-design.md
